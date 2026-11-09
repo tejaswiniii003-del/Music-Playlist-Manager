@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music Playlist Manager | DCLL Mini Project</title>
+<style>
+  :root { --bg:#0b1020; --panel:#151d32; --panel2:#1c2740; --text:#eef2ff; --muted:#aab5d0; --accent:#9b8cff; --accent2:#5eead4; --danger:#ff7b91; --line:#2e3a57; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:radial-gradient(circle at top left,#20294b 0,#0b1020 48%); color:var(--text); font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
+  .wrap { width:min(1100px,94%); margin:32px auto; }
+  header { margin-bottom:22px; }
+  .eyebrow { color:var(--accent2); text-transform:uppercase; letter-spacing:.16em; font-size:.75rem; font-weight:800; }
+  h1 { margin:6px 0; font-size:clamp(1.8rem,4vw,2.7rem); line-height:1.1; }
+  .sub { color:var(--muted); margin:8px 0 0; }
+  .layout { display:grid; grid-template-columns: minmax(0,1.05fr) minmax(0,1fr); gap:18px; }
+  .panel { background:rgba(21,29,50,.94); border:1px solid var(--line); border-radius:18px; padding:20px; box-shadow:0 18px 45px #0002; min-width:0; }
+  h2 { font-size:1.05rem; margin:0 0 14px; }
+  .fields { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  label { display:block; font-size:.83rem; color:var(--muted); margin-bottom:5px; }
+  input, select { width:100%; border:1px solid var(--line); background:#0e1528; color:var(--text); border-radius:10px; padding:11px 12px; outline:none; }
+  input:focus,select:focus { border-color:var(--accent); }
+  .field.full { grid-column:1/-1; }
+  button { border:1px solid transparent; border-radius:10px; padding:10px 13px; font-weight:750; cursor:pointer; color:#0b1020; background:var(--accent); transition:transform .12s,opacity .12s; }
+  button:hover { transform:translateY(-1px); }
+  button:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+  .secondary { color:var(--text); background:var(--panel2); border-color:var(--line); }
+  .teal { background:var(--accent2); }
+  .danger { background:var(--danger); }
+  .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+  .now { display:flex; align-items:center; gap:14px; padding:16px; border-radius:14px; background:linear-gradient(130deg,#29234f,#142d3a); border:1px solid #45416f; margin-bottom:14px; }
+  .disc { width:58px; height:58px; border-radius:50%; flex:none; display:grid; place-items:center; background:repeating-radial-gradient(circle,#171b2c 0 4px,#2b3150 5px 8px); border:5px solid #65618e; }
+  .disc span { width:13px;height:13px;border-radius:50%;background:var(--accent2); }
+  .now-title { font-size:1.05rem; font-weight:800; overflow-wrap:anywhere; }
+  .muted { color:var(--muted); font-size:.88rem; }
+  .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin:14px 0; }
+  .stat { background:#0e1528; border:1px solid var(--line); border-radius:12px; padding:11px; }
+  .stat strong { display:block; font-size:1.3rem; }
+  .stat span { color:var(--muted); font-size:.78rem; }
+  .searchrow { display:grid; grid-template-columns:1fr auto; gap:8px; margin-bottom:12px; }
+  .song-list { display:flex; flex-direction:column; gap:8px; max-height:430px; overflow:auto; }
+  .song { display:flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:12px; padding:11px; background:#10182b; }
+  .song.active { border-color:var(--accent2); background:#142b34; }
+  .songnum { color:var(--accent2); font-weight:850; width:28px; flex:none; }
+  .songinfo { min-width:0; flex:1; }
+  .songname { font-weight:750; overflow-wrap:anywhere; }
+  .songmeta { color:var(--muted); font-size:.82rem; overflow-wrap:anywhere; }
+  .pill { font-size:.72rem; padding:3px 7px; border-radius:20px; background:#283454; color:#dbe4ff; white-space:nowrap; }
+  .empty { color:var(--muted); padding:24px 8px; text-align:center; border:1px dashed var(--line); border-radius:12px; }
+  .notice { min-height:24px; margin-top:10px; font-size:.88rem; color:var(--accent2); }
+  .footer { color:var(--muted); font-size:.82rem; margin-top:18px; }
+  @media(max-width:760px) { .layout{grid-template-columns:1fr;} .fields{grid-template-columns:1fr;} .field.full{grid-column:auto;} .wrap{margin:20px auto;} .panel{padding:16px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">DSA Mini Project · Project 8</div>
+    <h1>Music Playlist Manager</h1>
+    <p class="sub">A playlist implemented using a <strong>Doubly Circular Linked List</strong> — move forward, move backward, and loop around.</p>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+      <h2>Add a song</h2>
+      <form id="songForm">
+        <div class="fields">
+          <div class="field">
+            <label for="songId">Song ID (unique number)</label>
+            <input id="songId" type="number" min="1" step="1" placeholder="e.g. 101" required>
+          </div>
+          <div class="field">
+            <label for="duration">Duration (mm:ss)</label>
+            <input id="duration" type="text" placeholder="e.g. 03:45" pattern="[0-9]{1,3}:[0-5][0-9]" required>
+          </div>
+          <div class="field full">
+            <label for="title">Song title</label>
+            <input id="title" type="text" maxlength="100" placeholder="Enter song title" required>
+          </div>
+          <div class="field full">
+            <label for="artist">Artist / singer</label>
+            <input id="artist" type="text" maxlength="100" placeholder="Enter artist name" required>
+          </div>
+        </div>
+        <div class="actions"><button type="submit" class="teal">＋ Add song</button><button type="button" id="demoBtn" class="secondary">Load sample songs</button></div>
+      </form>
+      <div id="notice" class="notice" role="status" aria-live="polite"></div>
+
+      <h2 style="margin-top:20px">Find or remove a song</h2>
+      <label for="searchText">Enter Song ID or title</label>
+      <div class="searchrow">
+        <input id="searchText" type="text" placeholder="e.g. 102 or Yellow">
+        <button type="button" id="findBtn">Find / Select</button>
+      </div>
+      <div class="actions">
+        <button type="button" id="deleteBtn" class="danger">Remove matching song</button>
+        <button type="button" id="clearBtn" class="secondary">Clear playlist</button>
+      </div>
+      <p class="muted">Search by ID first; if the input is not an ID, the title is matched without case sensitivity.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Now selected</h2>
+      <div class="now">
+        <div class="disc"><span></span></div>
+        <div>
+          <div id="currentTitle" class="now-title">No song selected</div>
+          <div id="currentMeta" class="muted">Add a song to begin.</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="button" id="prevBtn" class="secondary">⟵ Previous</button>
+        <button type="button" id="nextBtn">Next ⟶</button>
+      </div>
+      <div class="stats">
+        <div class="stat"><strong id="songCount">0</strong><span>Total songs</span></div>
+        <div class="stat"><strong id="currentId">—</strong><span>Current ID</span></div>
+        <div class="stat"><strong id="loopState">ON</strong><span>Circular repeat</span></div>
+      </div>
+      <h2>Playlist</h2>
+      <div id="songList" class="song-list"><div class="empty">Your playlist is empty. Add a song to get started.</div></div>
+      <p class="footer">DSA note: each node stores <code>prev</code> and <code>next</code>. In a non-empty playlist, <code>tail.next = head</code> and <code>head.prev = tail</code>.</p>
+    </section>
+  </main>
+</div>
+
+<script>
+/*
+  Music Playlist Manager — Doubly Circular Linked List
+  Each node stores song details and two links:
+  next -> next song; prev -> previous song.
+*/
+class SongNode {
+  constructor(songID, title, artist, duration) {
+    this.songID = songID;
+    this.title = title;
+    this.artist = artist;
+    this.duration = duration;
+    this.next = null;
+    this.prev = null;
+  }
+}
+
+class Playlist {
+  constructor() {
+    this.head = null;
+    this.tail = null;
+    this.current = null;
+    this.totalSongs = 0;
+  }
+
+  // Add at the end. The new node is linked in both directions.
+  addSong(songID, title, artist, duration) {
+    if (this.findById(songID)) return { ok: false, message: "That Song ID already exists. Please use a unique ID." };
+
+    const newSong = new SongNode(songID, title.trim(), artist.trim(), duration.trim());
+
+    if (this.head === null) {
+      // First node points to itself in both directions.
+      this.head = newSong;
+      this.tail = newSong;
+      newSong.next = newSong;
+      newSong.prev = newSong;
+      this.current = newSong;
+    } else {
+      newSong.prev = this.tail;
+      newSong.next = this.head;
+      this.tail.next = newSong;
+      this.head.prev = newSong;
+      this.tail = newSong;
+    }
+
+    this.totalSongs++;
+    return { ok: true, message: `"${newSong.title}" added to the playlist.` };
+  }
+
+  findById(id) {
+    if (this.head === null) return null;
+    let temp = this.head;
+    do {
+      if (temp.songID === Number(id)) return temp;
+      temp = temp.next;
+    } while (temp !== this.head);
+    return null;
+  }
+
+  findByTitle(title) {
+    if (this.head === null) return null;
+    const wanted = title.trim().toLocaleLowerCase();
+    let temp = this.head;
+    do {
+      if (temp.title.toLocaleLowerCase() === wanted) return temp;
+      temp = temp.next;
+    } while (temp !== this.head);
+    return null;
+  }
+
+  findSong(query) {
+    const value = query.trim();
+    if (!value || this.head === null) return null;
+    // A numeric input is treated as an ID; otherwise search by exact title.
+    if (/^\d+$/.test(value)) return this.findById(value);
+    return this.findByTitle(value);
+  }
+
+  selectSong(song) {
+    if (!song) return false;
+    this.current = song;
+    return true;
+  }
+
+  nextSong() {
+    if (this.current === null) return false;
+    this.current = this.current.next; // tail.next is head
+    return true;
+  }
+
+  previousSong() {
+    if (this.current === null) return false;
+    this.current = this.current.prev; // head.prev is tail
+    return true;
+  }
+
+  removeSong(query) {
+    const target = this.findSong(query);
+    if (!target) return { ok: false, message: "No song found with that ID or exact title." };
+
+    if (this.totalSongs === 1) {
+      // Special case: removing the only node empties the list.
+      this.head = null;
+      this.tail = null;
+      this.current = null;
+    } else {
+      // Bypass target in both directions.
+      target.prev.next = target.next;
+      target.next.prev = target.prev;
+
+      if (target === this.head) this.head = target.next;
+      if (target === this.tail) this.tail = target.prev;
+
+      // If the selected song is removed, select the song that followed it.
+      if (this.current === target) this.current = target.next;
+    }
+
+    this.totalSongs--;
+    target.next = null;
+    target.prev = null;
+    return { ok: true, message: `"${target.title}" removed from the playlist.` };
+  }
+
+  clear() {
+    if (this.head === null) return;
+    let temp = this.head;
+    for (let i = 0; i < this.totalSongs; i++) {
+      const nextSong = temp.next;
+      temp.next = null;
+      temp.prev = null;
+      temp = nextSong;
+    }
+    this.head = this.tail = this.current = null;
+    this.totalSongs = 0;
+  }
+
+  getSongs() {
+    const songs = [];
+    if (this.head === null) return songs;
+    let temp = this.head;
+    do {
+      songs.push(temp);
+      temp = temp.next;
+    } while (temp !== this.head);
+    return songs;
+  }
+}
+
+const playlist = new Playlist();
+const $ = (id) => document.getElementById(id);
+const notice = $("notice");
+
+function showNotice(message, isError = false) {
+  notice.textContent = message;
+  notice.style.color = isError ? "var(--danger)" : "var(--accent2)";
+}
+function render() {
+  const songs = playlist.getSongs();
+  $("songCount").textContent = playlist.totalSongs;
+  $("currentTitle").textContent = playlist.current ? playlist.current.title : "No song selected";
+  $("currentMeta").textContent = playlist.current
+    ? `${playlist.current.artist} · ${playlist.current.duration}`
+    : (playlist.totalSongs ? "Select a song from the playlist." : "Add a song to begin.");
+  $("currentId").textContent = playlist.current ? playlist.current.songID : "—";
+  $("prevBtn").disabled = playlist.totalSongs === 0;
+  $("nextBtn").disabled = playlist.totalSongs === 0;
+  $("deleteBtn").disabled = playlist.totalSongs === 0;
+  $("clearBtn").disabled = playlist.totalSongs === 0;
+
+  const list = $("songList");
+  list.replaceChildren();
+  if (songs.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "Your playlist is empty. Add a song to get started.";
+    list.appendChild(empty);
+    return;
+  }
+
+  songs.forEach((song, index) => {
+    const row = document.createElement("div");
+    row.className = "song" + (song === playlist.current ? " active" : "");
+    const number = document.createElement("div");
+    number.className = "songnum";
+    number.textContent = String(index + 1).padStart(2, "0");
+    const info = document.createElement("div");
+    info.className = "songinfo";
+    const name = document.createElement("div");
+    name.className = "songname";
+    name.textContent = song.title;
+    const meta = document.createElement("div");
+    meta.className = "songmeta";
+    meta.textContent = `ID ${song.songID} · ${song.artist} · ${song.duration}`;
+    info.append(name, meta);
+    row.append(number, info);
+    if (song === playlist.current) {
+      const pill = document.createElement("span");
+      pill.className = "pill";
+      pill.textContent = "SELECTED";
+      row.appendChild(pill);
+    } else {
+      const selectButton = document.createElement("button");
+      selectButton.type = "button";
+      selectButton.className = "secondary";
+      selectButton.textContent = "Select";
+      selectButton.addEventListener("click", () => {
+        playlist.selectSong(song);
+        render();
+        showNotice(`Now selected: "${song.title}".`);
+      });
+      row.appendChild(selectButton);
+    }
+    list.appendChild(row);
+  });
+}
+
+$("songForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const id = Number($("songId").value);
+  const title = $("title").value.trim();
+  const artist = $("artist").value.trim();
+  const duration = $("duration").value.trim();
+  if (!Number.isSafeInteger(id) || id < 1) {
+    showNotice("Song ID must be a positive whole number.", true);
+    return;
+  }
+  if (!title || !artist || !/^\d{1,3}:[0-5]\d$/.test(duration)) {
+    showNotice("Please enter a title, artist, and duration in mm:ss format.", true);
+    return;
+  }
+  const result = playlist.addSong(id, title, artist, duration);
+  showNotice(result.message, !result.ok);
+  if (result.ok) {
+    $("songForm").reset();
+    render();
+  }
+});
+
+$("findBtn").addEventListener("click", () => {
+  const song = playlist.findSong($("searchText").value);
+  if (!song) {
+    showNotice("No song found. Enter a Song ID or the exact title.", true);
+    return;
+  }
+  playlist.selectSong(song);
+  render();
+  showNotice(`Found and selected "${song.title}".`);
+});
+
+$("deleteBtn").addEventListener("click", () => {
+  const query = $("searchText").value;
+  if (!query.trim()) {
+    showNotice("Enter a Song ID or title before removing a song.", true);
+    return;
+  }
+  const result = playlist.removeSong(query);
+  showNotice(result.message, !result.ok);
+  render();
+});
+
+$("nextBtn").addEventListener("click", () => {
+  if (playlist.nextSong()) {
+    render();
+    showNotice(`Next song: "${playlist.current.title}".`);
+  }
+});
+$("prevBtn").addEventListener("click", () => {
+  if (playlist.previousSong()) {
+    render();
+    showNotice(`Previous song: "${playlist.current.title}".`);
+  }
+});
+$("clearBtn").addEventListener("click", () => {
+  playlist.clear();
+  render();
+  showNotice("Playlist cleared.");
+});
+$("demoBtn").addEventListener("click", () => {
+  const samples = [
+    [101, "Yellow", "Coldplay", "04:26"],
+    [102, "Perfect", "Ed Sheeran", "04:23"],
+    [103, "Kun Faya Kun", "A. R. Rahman, Javed Ali, Mohit Chauhan", "07:50"],
+    [104, "Ilahi", "Arijit Singh", "03:48"]
+  ];
+  let added = 0;
+  for (const [id, title, artist, duration] of samples) {
+    if (playlist.addSong(id, title, artist, duration).ok) added++;
+  }
+  render();
+  showNotice(added ? `${added} sample song(s) added.` : "Sample songs are already in the playlist.");
+});
+
+render();
+</script>
+</body>
+</html>
